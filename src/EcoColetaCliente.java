@@ -11,36 +11,36 @@ public class EcoColetaCliente {
         System.out.println("--- Sistema EcoColeta - Busca de Pontos ---");
         System.out.print("Qual tipo de resíduo você deseja descartar (Ex: Plástico, Vidro, Óleo de Cozinha)? ");
         String materialBusca = scanner.nextLine();
-        
+
         // Remove a necessidade do scanner após a leitura da busca
-        scanner.close(); 
+        scanner.close();
 
         try (Socket socket = new Socket(HOST, PORTA);
-     // O ObjectOutputStream DEVE ser inicializado antes do ObjectInputStream
-     // para evitar Deadlocks/Problemas de Cabeçalho na serialização.
-     ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream())) {
-     
-    // Forçar a escrita do cabeçalho do stream imediatamente após a criação
-    oos.flush(); 
+                // O ObjectOutputStream DEVE ser inicializado antes do ObjectInputStream
+                // para evitar Deadlocks/Problemas de Cabeçalho na serialização.
+                ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream())) {
 
-    // O ObjectInputStream deve ser inicializado DEPOIS do ObjectOutputStream
-    ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
+            // Forçar a escrita do cabeçalho do stream imediatamente após a criação
+            oos.flush();
 
-System.out.println("Conectado ao servidor. Enviando requisição...");
+            // O ObjectInputStream deve ser inicializado DEPOIS do ObjectOutputStream
+            ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
 
-// NOVO PASSO: Envia o comando esperado pelo Servidor
-oos.writeObject("BUSCAR"); 
+            System.out.println("Conectado ao servidor. Enviando requisição...");
 
-// Passo Antigo: Envia o dado (materialBusca)
-oos.writeObject(materialBusca);
-oos.flush(); // Garante que AMBOS os objetos sejam enviados
+            // NOVO PASSO: Envia o comando esperado pelo Servidor
+            oos.writeObject("BUSCAR");
 
-// O restante do código de leitura e exibição...
-@SuppressWarnings("unchecked")
-List<PontoColeta> resultados = (List<PontoColeta>) ois.readObject();
+            // Passo Antigo: Envia o dado (materialBusca)
+            oos.writeObject(materialBusca);
+            oos.flush(); // Garante que AMBOS os objetos sejam enviados
 
-    System.out.println("\n--- Resultados da Busca para '" + materialBusca + "' ---");
-    if (resultados.isEmpty()) {
+            // O restante do código de leitura e exibição...
+            @SuppressWarnings("unchecked")
+            List<PontoColeta> resultados = (List<PontoColeta>) ois.readObject();
+
+            System.out.println("\n--- Resultados da Busca para '" + materialBusca + "' ---");
+            if (resultados.isEmpty()) {
                 System.out.println("Nenhum ponto de coleta encontrado que aceite '" + materialBusca + "'.");
             } else {
                 for (int i = 0; i < resultados.size(); i++) {
@@ -48,11 +48,12 @@ List<PontoColeta> resultados = (List<PontoColeta>) ois.readObject();
                 }
             }
 
-} catch (ConnectException e) {
-    // ...
-} catch (IOException | ClassNotFoundException e) {
-    // Mantenha essa linha para debug, ela ajudará a ver o erro real se não for "null"
-    System.err.println("Erro de comunicação: " + e.getMessage()); 
-}
+        } catch (ConnectException e) {
+            // ...
+        } catch (IOException | ClassNotFoundException e) {
+            // Mantenha essa linha para debug, ela ajudará a ver o erro real se não for
+            // "null"
+            System.err.println("Erro de comunicação: " + e.getMessage());
+        }
     }
 }

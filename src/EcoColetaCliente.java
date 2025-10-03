@@ -16,23 +16,31 @@ public class EcoColetaCliente {
         scanner.close(); 
 
         try (Socket socket = new Socket(HOST, PORTA);
-             ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
-             ObjectInputStream ois = new ObjectInputStream(socket.getInputStream())) {
+     // O ObjectOutputStream DEVE ser inicializado antes do ObjectInputStream
+     // para evitar Deadlocks/Problemas de Cabeçalho na serialização.
+     ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream())) {
+     
+    // Forçar a escrita do cabeçalho do stream imediatamente após a criação
+    oos.flush(); 
 
-            System.out.println("Conectado ao servidor. Enviando requisição...");
-            
-            // Envia a requisição de busca
-            oos.writeObject(materialBusca);
-            oos.flush();
+    // O ObjectInputStream deve ser inicializado DEPOIS do ObjectOutputStream
+    ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
 
-            // Recebe a lista de pontos de coleta
-            // É necessário fazer um cast e ignorar o warning para manter a simplicidade
-            @SuppressWarnings("unchecked")
-            List<PontoColeta> resultados = (List<PontoColeta>) ois.readObject();
-            
-            System.out.println("\n--- Resultados da Busca para '" + materialBusca + "' ---");
+System.out.println("Conectado ao servidor. Enviando requisição...");
 
-            if (resultados.isEmpty()) {
+// NOVO PASSO: Envia o comando esperado pelo Servidor
+oos.writeObject("BUSCAR"); 
+
+// Passo Antigo: Envia o dado (materialBusca)
+oos.writeObject(materialBusca);
+oos.flush(); // Garante que AMBOS os objetos sejam enviados
+
+// O restante do código de leitura e exibição...
+@SuppressWarnings("unchecked")
+List<PontoColeta> resultados = (List<PontoColeta>) ois.readObject();
+
+    System.out.println("\n--- Resultados da Busca para '" + materialBusca + "' ---");
+    if (resultados.isEmpty()) {
                 System.out.println("Nenhum ponto de coleta encontrado que aceite '" + materialBusca + "'.");
             } else {
                 for (int i = 0; i < resultados.size(); i++) {
@@ -40,10 +48,11 @@ public class EcoColetaCliente {
                 }
             }
 
-        } catch (ConnectException e) {
-            System.err.println("Erro: Não foi possível conectar ao servidor. Verifique se o EcoColetaServer está em execução.");
-        } catch (IOException | ClassNotFoundException e) {
-            System.err.println("Erro de comunicação: " + e.getMessage());
-        }
+} catch (ConnectException e) {
+    // ...
+} catch (IOException | ClassNotFoundException e) {
+    // Mantenha essa linha para debug, ela ajudará a ver o erro real se não for "null"
+    System.err.println("Erro de comunicação: " + e.getMessage()); 
+}
     }
 }
